@@ -85,6 +85,11 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		/** Handle to the surface manager object we interact with */
 		private SurfaceHolder mSurfaceHolder;
 
+		// Points display (so strings don't need to be created with each drawing
+		// pass)
+		private String pointsDisplay = "";
+		private String highScoreDisplay = "";
+
 		public GameThread(SurfaceHolder surfaceHolder, Context context) {
 			mSurfaceHolder = surfaceHolder;
 			mContext = context;
@@ -138,6 +143,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							+ (BALLS_IN_QUEUE * BALL_SPACING);
 					createNewBall();
 					points = 0;
+					setPointsDisplay();
+					setHighScoreDisplay();
 					isGameOver = false;
 					shooting = false;
 					moveX = 0;
@@ -222,18 +229,22 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			synchronized (mSurfaceHolder) {
 				try {
 					currBall = (Ball) savedGame.get(RisingNumbers.CURR_BALL);
-					balls = (ArrayList<Ball>) savedGame.get(RisingNumbers.BALLS);
+					balls = (ArrayList<Ball>) savedGame
+							.get(RisingNumbers.BALLS);
 					ballsInQueue = (ArrayList<Ball>) savedGame
 							.get(RisingNumbers.BALLS_IN_QUEUE);
 					points = (Integer) savedGame
 							.get(RisingNumbers.CURRENT_POINTS);
+					setPointsDisplay();
 					isGameOver = (Boolean) savedGame
 							.get(RisingNumbers.IS_GAME_OVER);
 					moveX = (Float) savedGame.get(RisingNumbers.MOVE_X);
 					moveY = (Float) savedGame.get(RisingNumbers.MOVE_Y);
-					shooting = (Boolean) savedGame.get(RisingNumbers.IS_SHOOTING);
+					shooting = (Boolean) savedGame
+							.get(RisingNumbers.IS_SHOOTING);
 					lastX = (Integer) savedGame.get(RisingNumbers.LAST_X);
 					initHighScore();
+					setHighScoreDisplay();
 				} catch (Exception e) {
 					Log.e(this.getClass().getName(),
 							"Exception restoring state saved game: "
@@ -250,10 +261,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				Canvas c = null;
 				try {
 					c = mSurfaceHolder.lockCanvas();
-					
-					// TODO - Remove
-					//long start=System.currentTimeMillis();
-					
+
 					if (c != null) {
 						synchronized (mSurfaceHolder) {
 							if (mMode == STATE_RUNNING) {
@@ -269,14 +277,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							}
 						}
 					}
-					
-					// TODO - Remove
-					//long diff=System.currentTimeMillis() - start;
-					//if (diff>10){
-					// Debug
-					//	Log.e(this.getClass().getName(),
-					//			"Incr took" + (System.currentTimeMillis() - start));						
-					//}
 
 				} finally {
 					// Do this in a finally so that if an exception is thrown
@@ -408,6 +408,23 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			}
 		}
 
+		/**
+		 * Set points display.
+		 */
+		public void setPointsDisplay() {
+			pointsDisplay = mContext.getString(R.string.points) + " " + points;
+
+		}
+
+		/**
+		 * Set high score display.
+		 */
+		public void setHighScoreDisplay() {
+			highScoreDisplay = mContext.getString(R.string.highScore) + " "
+					+ highScore;
+
+		}
+
 		private void createNewBall() {
 
 			// Get latest
@@ -425,8 +442,9 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			// Move up rest of queue
 			int x = MARGIN_LEFT + STARTING_BALL_SPACING_LEFT;
-			for (Ball ballInQueue : ballsInQueue) {
-				ballInQueue.x = x;
+			int size = ballsInQueue.size();
+			for (int i = 0; i < size; i++) {
+				ballsInQueue.get(i).x = x;
 				x += BALL_SPACING;
 			}
 		}
@@ -490,25 +508,25 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			canvas.drawLine(0, 2, 300, 2, mTextColorMedium);
 
 			// Draw balls on board
-			for (Ball ball : balls) {
-				drawBall(canvas, ball);
+			int size = balls.size();
+			for (int i = 0; i < size; i++) {
+				drawBall(canvas, balls.get(i));
 			}
 
 			// Draw balls in queue
-			for (Ball ball : ballsInQueue) {
-				drawBall(canvas, ball);
+			size = ballsInQueue.size();
+			for (int i = 0; i < size; i++) {
+				drawBall(canvas, ballsInQueue.get(i));
 			}
 
 			// Draw current ball
 			drawBall(canvas, currBall);
 
-			// Draw
-			canvas.drawText(mContext.getString(R.string.points) + " "
-					+ Integer.toString(points), 1, 326, mTextColorMedium);
+			// Draw points
+			canvas.drawText(pointsDisplay, 1, 326, mTextColorMedium);
 
-			// Draw
-			canvas.drawText(mContext.getString(R.string.highScore) + " "
-					+ Integer.toString(highScore), 1, 352, mTextColorMedium);
+			// Draw high score
+			canvas.drawText(highScoreDisplay, 1, 352, mTextColorMedium);
 		}
 
 		/**
@@ -574,6 +592,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				try {
 					if (points > highScore) {
 						highScore = points;
+
+						setHighScoreDisplay();
 
 						FileOutputStream fos = mContext.openFileOutput(
 								RisingNumbers.HIGHSCORE_FILENAME,
@@ -670,6 +690,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							// Add 1 to points
 							points += 1;
 						}
+
+						setPointsDisplay();
 
 						lastX = currBall.x;
 						createNewBall();
