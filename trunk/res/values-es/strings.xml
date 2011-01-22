@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-	<string name="app_name">Números que suben</string>
+	<string name="app_name">Números Que Suben</string>
 	<string name="app_desc">Número subiendo divide.</string>	
 	
 	<string name="menu_start">Nuevo Juego</string>
