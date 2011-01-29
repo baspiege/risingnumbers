@@ -6,6 +6,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 import com.appspot.mathuzzles.risingnumbers.R;
 import com.appspot.mathuzzles.risingnumbers.model.Ball;
@@ -89,6 +90,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		// pass)
 		private String pointsDisplay = "";
 		private String highScoreDisplay = "";
+		
+		private Random random=new Random();
 
 		public GameThread(SurfaceHolder surfaceHolder, Context context) {
 			mSurfaceHolder = surfaceHolder;
@@ -533,8 +536,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		 * Generate random.
 		 */
 		private int generateRandom(int max) {
-
-			return new Double(Math.floor(Math.random() * max)).intValue();
+			return random.nextInt(max);
 		}
 
 		/**
