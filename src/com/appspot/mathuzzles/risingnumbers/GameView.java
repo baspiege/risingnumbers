@@ -34,8 +34,9 @@ import android.view.GestureDetector.SimpleOnGestureListener;
 /**
  * Rising numbers view.
  * 
- * - color of balls is red - balls from opponent - balls to opponent - function
- * handleRequest, function incrementOpponent
+ * TODO - 1 pt when moving for multi play
+ * Opponent ball move up if exist.
+ * Only show 3 opponent balls...
  * 
  * Has a mode: running, paused, game over.
  */
@@ -176,12 +177,9 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			synchronized (mSurfaceHolder) {
 
 				if (isPlayOnline) {
-					//if (multiPlayConnectionThread==null) {
-					//	multiPlayConnectionThread=new MultiPlayConnectionThread();
-					//	multiPlayConnectionThread.start();
-					//} else
-					if (multiPlayConnectionThread.getState().equals(Thread.State.TERMINATED)) {
-						multiPlayConnectionThread=new MultiPlayConnectionThread();
+					if (multiPlayConnectionThread.getState().equals(
+							Thread.State.TERMINATED)) {
+						multiPlayConnectionThread = new MultiPlayConnectionThread();
 						multiPlayConnectionThread.start();
 					}
 
@@ -571,7 +569,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 
 		/**
-		 * Draw ball.
+		 * Draw ball from opponent.
 		 */
 		private void drawOpponentBall(Canvas canvas, Ball ball) {
 			canvas.drawCircle(ball.x, ball.y, BALL_RADIUS, mBallOpponentColor);
@@ -860,7 +858,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			// Multiplay constants
 			private int CONNECTION_MILLIS = 2000;
-
 			private String CONNECTION_URL = "http://mathuzzles.appspot.com/multiplay.jsp";
 
 			@Override
@@ -1071,7 +1068,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		// the surface to be created
 		thread.setRunning(true);
 		thread.start();
-		
+
 		thread.multiPlayConnectionThread.start();
 	}
 
