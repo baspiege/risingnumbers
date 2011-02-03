@@ -28,6 +28,7 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	private static final int MENU_PAUSE = 1;
 	private static final int MENU_RESUME = 2;
 	private static final int MENU_START = 3;
+	private static final int MENU_START_MULTI_PLAY = 4;
 
 	private static final String SAVED_GAME_FILE_NAME = "savedGame";
 	public static final String HIGHSCORE_FILENAME = "highScore";
@@ -58,6 +59,7 @@ public class RisingNumbers extends Activity implements OnClickListener {
 		menu.add(0, MENU_START, 0, R.string.menu_start);
 		menu.add(0, MENU_PAUSE, 0, R.string.menu_pause);
 		menu.add(0, MENU_RESUME, 0, R.string.menu_resume);
+		menu.add(0, MENU_START_MULTI_PLAY, 0, R.string.menu_start_multiplay);
 		return true;
 	}
 
@@ -75,6 +77,13 @@ public class RisingNumbers extends Activity implements OnClickListener {
 		switch (item.getItemId()) {
 		case MENU_START:
 			gameThread.setState(GameThread.STATE_RUNNING);
+			gameThread.setIsPlayOnline(true);
+			gameThread.doStart();
+			return true;
+		case MENU_START_MULTI_PLAY:
+			// Start multi play thread
+			gameThread.setState(GameThread.STATE_RUNNING);
+			gameThread.setIsPlayOnline(true);
 			gameThread.doStart();
 			return true;
 		case MENU_PAUSE:
@@ -117,7 +126,7 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	@Override
 	protected void onPause() {
 		super.onPause();
-
+		
 		try {
 			// Save game
 			FileOutputStream fos = openFileOutput(SAVED_GAME_FILE_NAME,
@@ -172,8 +181,8 @@ public class RisingNumbers extends Activity implements OnClickListener {
 				}
 			}
 		} catch (Exception e) {
-			Log.e(RisingNumbers.class.getName(), "Exception getting saved game:"
-					+ e.toString());
+			Log.e(RisingNumbers.class.getName(),
+					"Exception getting saved game:" + e.toString());
 		}
 		return hashMap;
 	}
