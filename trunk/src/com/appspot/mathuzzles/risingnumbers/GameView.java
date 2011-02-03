@@ -8,6 +8,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+
 import com.appspot.mathuzzles.risingnumbers.R;
 import com.appspot.mathuzzles.risingnumbers.model.Ball;
 
@@ -27,9 +34,13 @@ import android.view.GestureDetector.SimpleOnGestureListener;
 /**
  * Rising numbers view.
  * 
+ * - color of balls is red - balls from opponent - balls to opponent - function
+ * handleRequest, function incrementOpponent
+ * 
  * Has a mode: running, paused, game over.
  */
 class GameView extends SurfaceView implements SurfaceHolder.Callback {
+
 	class GameThread extends Thread {
 
 		// State-tracking constants
@@ -60,6 +71,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		private int points = 0;
 		private int highScore = 0;
 		private boolean isGameOver = false;
+		private boolean isGameWon = false;
 		private float moveX = 0;
 		private float moveY = 0;
 		private int lastX = 0;
@@ -68,10 +80,25 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		/** Used to figure out elapsed time between frames */
 		private long mLastTime;
 
+		// Multiplay game status
+		private int PENDING = 1;
+		private int IN_PLAY = 2;
+		private int OPPONENT_LOST_CONNECTION = 3;
+		private int USER_WON = 4;
+		private int USER_LOST = 5;
+
+		private String multiPlayUserId = "";
+		private int multiPlayGameStatus = 0;
+		private boolean multiPlayGameStarted = false;
+		private boolean isPlayOnline = false;
+		private ArrayList<Ball> ballsFromOpponent = new ArrayList<Ball>();
+		private ArrayList<Ball> ballsToOpponent = new ArrayList<Ball>();
+
 		// Colors
 		private Paint mClearColor;
 		private Paint mGreyColor;
 		private Paint mBallColor;
+		private Paint mBallOpponentColor;
 		private Paint mTextColorSmallBold;
 		private Paint mTextColorMedium;
 		private Paint mTextColorMediumBold;
@@ -90,12 +117,16 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		// pass)
 		private String pointsDisplay = "";
 		private String highScoreDisplay = "";
-		
-		private Random random=new Random();
+
+		private Random random = new Random();
+
+		public MultiPlayConnectionThread multiPlayConnectionThread = null;
 
 		public GameThread(SurfaceHolder surfaceHolder, Context context) {
 			mSurfaceHolder = surfaceHolder;
 			mContext = context;
+
+			multiPlayConnectionThread = new MultiPlayConnectionThread();
 
 			// Initialize paints
 			mClearColor = new Paint();
@@ -109,6 +140,10 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			mBallColor = new Paint();
 			mBallColor.setAntiAlias(true);
 			mBallColor.setARGB(255, 0, 0, 255);
+
+			mBallOpponentColor = new Paint();
+			mBallOpponentColor.setAntiAlias(true);
+			mBallOpponentColor.setARGB(255, 255, 0, 0);
 
 			mTextColorLargeBold = new Paint();
 			mTextColorLargeBold.setAntiAlias(true);
@@ -139,6 +174,21 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		 */
 		public void doStart() {
 			synchronized (mSurfaceHolder) {
+
+				if (isPlayOnline) {
+					//if (multiPlayConnectionThread==null) {
+					//	multiPlayConnectionThread=new MultiPlayConnectionThread();
+					//	multiPlayConnectionThread.start();
+					//} else
+					if (multiPlayConnectionThread.getState().equals(Thread.State.TERMINATED)) {
+						multiPlayConnectionThread=new MultiPlayConnectionThread();
+						multiPlayConnectionThread.start();
+					}
+
+					multiPlayConnectionThread.mConnectionLastTime = System
+							.currentTimeMillis();
+				}
+
 				if (mMode != STATE_PAUSE) {
 					initHighScore();
 					createBoard();
@@ -152,6 +202,13 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					shooting = false;
 					moveX = 0;
 					moveY = 0;
+
+					// Multi play
+					ballsFromOpponent = new ArrayList<Ball>();
+					ballsToOpponent = new ArrayList<Ball>();
+					multiPlayUserId = new Long(random.nextLong()).toString();
+					multiPlayGameStatus = PENDING;
+					multiPlayGameStarted = false;
 				}
 				mLastTime = System.currentTimeMillis();
 				setState(STATE_RUNNING);
@@ -200,6 +257,15 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				if (mMode == STATE_RUNNING) {
 					setState(STATE_OVER);
 				}
+			}
+		}
+
+		/**
+		 * Sets a flag indicating if the game is playing online.
+		 */
+		public void setIsPlayOnline(boolean playOnline) {
+			synchronized (mSurfaceHolder) {
+				isPlayOnline = playOnline;
 			}
 		}
 
@@ -276,7 +342,12 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 								drawPaused(c);
 							} else if (mMode == STATE_OVER) {
 								doDraw(c);
-								drawGameOver(c);
+
+								if (isGameWon) {
+									drawGameWon(c);
+								} else {
+									drawGameOver(c);
+								}
 							}
 						}
 					}
@@ -458,6 +529,15 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					mTextColorMedium);
 		}
 
+		private void drawGameWon(Canvas canvas) {
+			// Back ground
+			canvas.drawRect(95, 80, 245, 130, mGreyColor);
+
+			// Text
+			canvas.drawText(mContext.getString(R.string.gameWon), 110, 110,
+					mTextColorMedium);
+		}
+
 		private void drawGameOver(Canvas canvas) {
 			// Back ground
 			canvas.drawRect(95, 80, 245, 130, mGreyColor);
@@ -472,6 +552,29 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		 */
 		private void drawBall(Canvas canvas, Ball ball) {
 			canvas.drawCircle(ball.x, ball.y, BALL_RADIUS, mBallColor);
+
+			// 0-9
+			if (ball.number < 10) {
+				canvas.drawText(Integer.toString(ball.number), ball.x - 6,
+						ball.y + 8, mTextColorLargeBold);
+			}
+			// 10-99
+			else if (ball.number < 100) {
+				canvas.drawText(Integer.toString(ball.number), ball.x - 12,
+						ball.y + 8, mTextColorMediumBold);
+			}
+			// 100 ->
+			else {
+				canvas.drawText(Integer.toString(ball.number), ball.x - 14,
+						ball.y + 6, mTextColorSmallBold);
+			}
+		}
+
+		/**
+		 * Draw ball.
+		 */
+		private void drawOpponentBall(Canvas canvas, Ball ball) {
+			canvas.drawCircle(ball.x, ball.y, BALL_RADIUS, mBallOpponentColor);
 
 			// 0-9
 			if (ball.number < 10) {
@@ -520,6 +623,11 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			size = ballsInQueue.size();
 			for (int i = 0; i < size; i++) {
 				drawBall(canvas, ballsInQueue.get(i));
+			}
+
+			size = ballsFromOpponent.size();
+			for (int i = 0; i < ballsFromOpponent.size(); i++) {
+				drawOpponentBall(canvas, ballsFromOpponent.get(i));
 			}
 
 			// Draw current ball
@@ -638,11 +746,11 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					currBall.y = MARGIN_TOP;
 				}
 
-				detectCollision();
+				detectCollision(currBall, true, true);
 			} else {
 				boolean collision = false;
 				while (!collision) {
-					collision = detectCollision();
+					collision = detectCollision(currBall, true, true);
 				}
 				shooting = false;
 			}
@@ -654,7 +762,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		 * Detect collision between balls.
 		 */
 		private boolean detectBallCollision(Ball ball_1, Ball ball_2) {
-
 			int dY = ball_1.y - ball_2.y;
 			int dX = ball_1.x - ball_2.x;
 			return Math.sqrt((dY * dY) + (dX * dX)) <= BALL_DISTANCE;
@@ -663,7 +770,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		/**
 		 * Detect collision with other balls or border.
 		 */
-		private boolean detectCollision() {
+		private boolean detectCollision(Ball movingBall,
+				boolean willCreateNewBall, boolean canMoveX) {
 
 			boolean collision = false;
 
@@ -682,6 +790,14 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						// Update points
 						points += ball.number - newValue;
 
+						// Send to opponent
+						if (isPlayOnline) {
+							Ball ballTo = new Ball();
+							ballTo.x = movingBall.x;
+							ballTo.number = points;
+							ballsToOpponent.add(ballTo);
+						}
+
 						// Update ball
 						ball.number = newValue;
 
@@ -696,7 +812,10 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						setPointsDisplay();
 
 						lastX = currBall.x;
-						createNewBall();
+
+						if (willCreateNewBall) {
+							createNewBall();
+						}
 					} else {
 						// Add to current ball.
 						currBall.number += ball.number;
@@ -709,7 +828,9 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							isGameOver = true;
 						} else {
 							lastX = currBall.x;
-							createNewBall();
+							if (willCreateNewBall) {
+								createNewBall();
+							}
 						}
 					}
 
@@ -731,6 +852,137 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			return collision;
 		}
+
+		class MultiPlayConnectionThread extends Thread {
+
+			/** Used to figure out elapsed time between frames */
+			public long mConnectionLastTime;
+
+			// Multiplay constants
+			private int CONNECTION_MILLIS = 2000;
+
+			private String CONNECTION_URL = "http://mathuzzles.appspot.com/multiplay.jsp";
+
+			@Override
+			public void run() {
+				while (true) {
+
+					if (mMode == STATE_RUNNING) {
+						sendRequest();
+					}
+				}
+			}
+
+			private void sendRequest() {
+				long now = System.currentTimeMillis();
+
+				// Keep ball movement at 20 milliseconds.
+				if (mConnectionLastTime + CONNECTION_MILLIS >= now) {
+					return;
+				}
+
+				// Always add user Id
+				String data = "?userId=" + multiPlayUserId;
+
+				// Flag if game is over
+				if (isGameOver) {
+					data += "&gameOver=" + isGameOver;
+				}
+				// Get next ball to shoot
+				else if (ballsToOpponent.size() > 0) {
+					Ball ballTo = ballsToOpponent.remove(0);
+					data += "&number=" + ballTo.number + "&x=" + ballTo.x;
+				}
+
+				String url = CONNECTION_URL + data;
+
+				Log.d(this.getClass().getName(), "Sending request: " + url);
+
+				try {
+					HttpClient client = new DefaultHttpClient();
+					HttpGet get = new HttpGet(url);
+					HttpResponse responseGet = client.execute(get);
+					HttpEntity resEntityGet = responseGet.getEntity();
+					if (resEntityGet != null) {
+						handleRequest(EntityUtils.toString(resEntityGet));
+					}
+				} catch (Exception e) {
+					Log.e(this.getClass().getName(),
+							"Exception connecting to multiplay URL: "
+									+ e.toString());
+				}
+
+				mConnectionLastTime = now;
+			}
+
+			// Handle request for multi play game
+			public void handleRequest(String response) {
+
+				Log
+						.d(this.getClass().getName(), "Handling response"
+								+ response);
+
+				if (!isPlayOnline) {
+					return;
+				}
+
+				String[] results = response.split(",");
+
+				// Should always have status
+				if (results.length > 0) {
+					multiPlayGameStatus = new Integer(results[0].trim())
+							.intValue();
+
+					// If not started
+					if (!multiPlayGameStarted) {
+						// Start game
+						if (multiPlayGameStatus == IN_PLAY) {
+							// Draw board and start animation
+							multiPlayGameStarted = true;
+							mMode = STATE_RUNNING;
+						}
+						// Start a new game (these shouldn't occur normally)
+						else if (multiPlayGameStatus == OPPONENT_LOST_CONNECTION
+								|| multiPlayGameStatus == USER_WON
+								|| multiPlayGameStatus == USER_LOST) {
+
+							// TODO - Is do start correct here?
+							doStart();
+						}
+					}
+					// Else, started...
+					else {
+						if (multiPlayGameStatus == OPPONENT_LOST_CONNECTION) {
+							isGameOver = true;
+							isGameWon = true;
+						} else if (multiPlayGameStatus == USER_WON) {
+							isGameOver = true;
+							isGameWon = true;
+						} else if (multiPlayGameStatus == USER_LOST) {
+							isGameOver = true;
+							isGameWon = false;
+						}
+					}
+				}
+
+				// Next results are ball from the opponent
+				if (results.length == 3) {
+					Ball ball = new Ball();
+					ball.number = new Integer(results[1].trim()).intValue();
+
+					// Put next to regular queue
+					int x = MARGIN_LEFT
+							+ STARTING_BALL_SPACING_LEFT
+							+ ((ballsFromOpponent.size() + BALLS_IN_QUEUE) * BALL_SPACING);
+
+					ball.x = x; // parseInt(results[2]);
+					ball.y = QUEUE_Y;
+
+					ballsFromOpponent.add(ball);
+				}
+			}
+		}
+
 	}
 
 	private GestureDetector gestureDetector;
@@ -819,6 +1071,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		// the surface to be created
 		thread.setRunning(true);
 		thread.start();
+		
+		thread.multiPlayConnectionThread.start();
 	}
 
 	/*

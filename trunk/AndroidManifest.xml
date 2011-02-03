@@ -7,6 +7,7 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.appspot.mathuzzles.risingnumbers" android:versionCode="2" android:versionName="1">
 	<uses-sdk android:minSdkVersion="1" android:targetSdkVersion="4" />
+	<uses-permission android:name="android.permission.INTERNET" /> 
 	<supports-screens android:anyDensity="false"/>
     <application android:description="@string/app_desc" android:icon="@drawable/rb" android:label="@string/app_name">
         <activity android:name="RisingNumbers" android:theme="@android:style/Theme.NoTitleBar">
