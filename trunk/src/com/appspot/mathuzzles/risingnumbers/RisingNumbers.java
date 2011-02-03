@@ -77,11 +77,10 @@ public class RisingNumbers extends Activity implements OnClickListener {
 		switch (item.getItemId()) {
 		case MENU_START:
 			gameThread.setState(GameThread.STATE_RUNNING);
-			gameThread.setIsPlayOnline(true);
+			gameThread.setIsPlayOnline(false);
 			gameThread.doStart();
 			return true;
 		case MENU_START_MULTI_PLAY:
-			// Start multi play thread
 			gameThread.setState(GameThread.STATE_RUNNING);
 			gameThread.setIsPlayOnline(true);
 			gameThread.doStart();
