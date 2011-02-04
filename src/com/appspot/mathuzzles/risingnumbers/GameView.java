@@ -34,9 +34,7 @@ import android.view.GestureDetector.SimpleOnGestureListener;
 /**
  * Rising numbers view.
  * 
- * TODO - 1 pt when moving for multi play
- * Opponent ball move up if exist.
- * Only show 3 opponent balls...
+ * TODO - Add user Id when saving and restoring...
  * 
  * Has a mode: running, paused, game over.
  */
@@ -64,6 +62,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		private static final int Y_DELTA = 1;
 		private static final int BALL_RADIUS = 15;
 		private static final int BALL_DISTANCE = BALL_RADIUS * 2;
+		private static final int OPPONENT_BALLS_IN_QUEUE_DISPLAY = 3; // Multiplay
+		// only
 
 		// Running game fields
 		private Ball currBall = null;
@@ -88,6 +88,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		private int USER_WON = 4;
 		private int USER_LOST = 5;
 
+		// Multiplay fields
 		private String multiPlayUserId = "";
 		private int multiPlayGameStatus = 0;
 		private boolean multiPlayGameStarted = false;
@@ -310,6 +311,13 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					shooting = (Boolean) savedGame
 							.get(RisingNumbers.IS_SHOOTING);
 					lastX = (Integer) savedGame.get(RisingNumbers.LAST_X);
+					isPlayOnline = (Boolean) savedGame
+							.get(RisingNumbers.IS_PLAY_ONLINE);
+					multiPlayGameStatus = (Integer) savedGame
+							.get(RisingNumbers.MULTI_PLAY_GAME_STATUS);
+					multiPlayGameStarted = (Boolean) savedGame
+							.get(RisingNumbers.MULTI_PLAY_GAME_STARTED);
+
 					initHighScore();
 					setHighScoreDisplay();
 				} catch (Exception e) {
@@ -332,8 +340,14 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					if (c != null) {
 						synchronized (mSurfaceHolder) {
 							if (mMode == STATE_RUNNING) {
-								incrementBoard();
-								doDraw(c);
+								if (isPlayOnline
+										&& multiPlayGameStatus == PENDING) {
+									c.drawPaint(mClearColor);
+									drawWaitingForOpponent(c);
+								} else {
+									incrementBoard();
+									doDraw(c);
+								}
 							} else if (mMode == STATE_PAUSE) {
 								// Clear screen
 								c.drawPaint(mClearColor);
@@ -378,6 +392,12 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				gameSate.put(RisingNumbers.MOVE_Y, moveY);
 				gameSate.put(RisingNumbers.IS_SHOOTING, shooting);
 				gameSate.put(RisingNumbers.LAST_X, lastX);
+				gameSate.put(RisingNumbers.IS_PLAY_ONLINE, isPlayOnline);
+				gameSate.put(RisingNumbers.MULTI_PLAY_GAME_STATUS,
+						multiPlayGameStatus);
+				gameSate.put(RisingNumbers.MULTI_PLAY_GAME_STARTED,
+						multiPlayGameStarted);
+
 			}
 			return gameSate;
 		}
@@ -497,34 +517,52 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 		}
 
+		/**
+		 * Create a new ball.
+		 * 
+		 * If playing online and there are opponent balls, get from opponents
+		 * balls. Else, get from regular queue.
+		 */
 		private void createNewBall() {
 
-			// Get latest
-			currBall = ballsInQueue.get(ballsInQueue.size() - 1);
-			currBall.x = lastX;
+			if (isPlayOnline && ballsFromOpponent.size() > 0) {
+				// Get latest from opponent balls
+				currBall = ballsFromOpponent
+						.remove(ballsFromOpponent.size() - 1);
+				currBall.y = QUEUE_Y;
+			} else {
 
-			// Remove from queue
-			ballsInQueue.remove(ballsInQueue.size() - 1);
+				// Get latest from regular queue
+				currBall = ballsInQueue.remove(ballsInQueue.size() - 1);
 
-			// Create new ball and add to back.
-			Ball ball = new Ball();
-			ball.number = generateRandom(NEW_BALL_MAX) + 2;
-			ball.y = QUEUE_Y;
-			ballsInQueue.add(0, ball);
+				// Create new ball and add to back.
+				Ball ball = new Ball();
+				ball.number = generateRandom(NEW_BALL_MAX) + 2;
+				ball.y = QUEUE_Y;
+				ballsInQueue.add(0, ball);
 
-			// Move up rest of queue
-			int x = MARGIN_LEFT + STARTING_BALL_SPACING_LEFT;
-			int size = ballsInQueue.size();
-			for (int i = 0; i < size; i++) {
-				ballsInQueue.get(i).x = x;
-				x += BALL_SPACING;
+				// Move up rest of queue
+				int x = MARGIN_LEFT + STARTING_BALL_SPACING_LEFT;
+				int size = ballsInQueue.size();
+				for (int i = 0; i < size; i++) {
+					ballsInQueue.get(i).x = x;
+					x += BALL_SPACING;
+				}
 			}
+
+			currBall.x = lastX;
 		}
 
 		private void drawPaused(Canvas canvas) {
 			// Text
 			canvas.drawText(mContext.getString(R.string.paused), 110, 110,
 					mTextColorMedium);
+		}
+
+		private void drawWaitingForOpponent(Canvas canvas) {
+			// Text
+			canvas.drawText(mContext.getString(R.string.waitingForOpponent),
+					45, 110, mTextColorMedium);
 		}
 
 		private void drawGameWon(Canvas canvas) {
@@ -623,12 +661,19 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				drawBall(canvas, ballsInQueue.get(i));
 			}
 
-			size = ballsFromOpponent.size();
-			for (int i = 0; i < ballsFromOpponent.size(); i++) {
-				drawOpponentBall(canvas, ballsFromOpponent.get(i));
+			// Draw opponent balls
+			if (isPlayOnline) {
+				size = ballsFromOpponent.size();
+
+				// Limit display
+				if (size > OPPONENT_BALLS_IN_QUEUE_DISPLAY) {
+					size = OPPONENT_BALLS_IN_QUEUE_DISPLAY;
+				}
+				for (int i = 0; i < size; i++) {
+					drawOpponentBall(canvas, ballsFromOpponent.get(i));
+				}
 			}
 
-			// Draw current ball
 			drawBall(canvas, currBall);
 
 			// Draw points
@@ -785,16 +830,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						// Calculate new value
 						int newValue = ball.number / currBall.number;
 
-						// Update points
-						points += ball.number - newValue;
-
-						// Send to opponent
-						if (isPlayOnline) {
-							Ball ballTo = new Ball();
-							ballTo.x = movingBall.x;
-							ballTo.number = points;
-							ballsToOpponent.add(ballTo);
-						}
+						// Calculate points
+						int pointsToAdd = ball.number - newValue;
 
 						// Update ball
 						ball.number = newValue;
@@ -804,7 +841,18 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							balls.remove(i);
 
 							// Add 1 to points
-							points += 1;
+							pointsToAdd += 1;
+						}
+
+						// Update points
+						points += pointsToAdd;
+
+						// Send to opponent
+						if (isPlayOnline) {
+							Ball ballTo = new Ball();
+							ballTo.x = movingBall.x;
+							ballTo.number = pointsToAdd;
+							ballsToOpponent.add(ballTo);
 						}
 
 						setPointsDisplay();
@@ -859,21 +907,24 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			// Multiplay constants
 			private int CONNECTION_MILLIS = 2000;
 			private String CONNECTION_URL = "http://mathuzzles.appspot.com/multiplay.jsp";
+			private HttpClient client = new DefaultHttpClient();
 
 			@Override
 			public void run() {
-				while (true) {
-
-					if (mMode == STATE_RUNNING) {
+				while (isPlayOnline && mRun) {
+					if (mMode == STATE_RUNNING || mMode == STATE_OVER) {
 						sendRequest();
 					}
 				}
 			}
 
+			/**
+			 * Send request to the server.
+			 */
 			private void sendRequest() {
 				long now = System.currentTimeMillis();
 
-				// Keep ball movement at 20 milliseconds.
+				// Keep ball movement at interval.
 				if (mConnectionLastTime + CONNECTION_MILLIS >= now) {
 					return;
 				}
@@ -896,7 +947,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				Log.d(this.getClass().getName(), "Sending request: " + url);
 
 				try {
-					HttpClient client = new DefaultHttpClient();
 					HttpGet get = new HttpGet(url);
 					HttpResponse responseGet = client.execute(get);
 					HttpEntity resEntityGet = responseGet.getEntity();
@@ -912,23 +962,33 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				mConnectionLastTime = now;
 			}
 
-			// Handle request for multi play game
+			/**
+			 * Handle request for multi play game
+			 * 
+			 * @param response
+			 */
 			public void handleRequest(String response) {
 
-				Log
-						.d(this.getClass().getName(), "Handling response"
-								+ response);
-
-				if (!isPlayOnline) {
+				if (!isPlayOnline || !mRun) {
 					return;
 				}
+
+				response = response.trim();
+
+				Log.d(this.getClass().getName(), "Handling response"
+						+ response.trim());
 
 				String[] results = response.split(",");
 
 				// Should always have status
 				if (results.length > 0) {
-					multiPlayGameStatus = new Integer(results[0].trim())
-							.intValue();
+
+					String status = results[0].trim();
+
+					if (status.length() > 0) {
+						multiPlayGameStatus = new Integer(results[0].trim())
+								.intValue();
+					}
 
 					// If not started
 					if (!multiPlayGameStarted) {
@@ -1079,10 +1139,23 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	 */
 	public void surfaceDestroyed(SurfaceHolder holder) {
 		thread.setRunning(false);
+
+		// Multi play connection thread
+		try {
+			if (thread.multiPlayConnectionThread != null) {
+				thread.multiPlayConnectionThread.join();
+			}
+		} catch (InterruptedException e) {
+			Log.e(this.getClass().getName(),
+					"Exception joining multi play connection thread:"
+							+ e.toString());
+		}
+
+		// UI thread
 		try {
 			thread.join();
 		} catch (InterruptedException e) {
-			Log.e(this.getClass().getName(), "Exception joining thread:"
+			Log.e(this.getClass().getName(), "Exception joining UI thread:"
 					+ e.toString());
 		}
 	}
