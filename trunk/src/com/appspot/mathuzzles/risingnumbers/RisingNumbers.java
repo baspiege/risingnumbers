@@ -45,6 +45,9 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	public static final String MOVE_Y = "MOVE_Y";
 	public static final String LAST_X = "LAST_X";
 	public static final String IS_SHOOTING = "IS_SHOOTING";
+	public static final String IS_PLAY_ONLINE = "IS_PLAY_ONLINE";
+	public static final String MULTI_PLAY_GAME_STATUS = "MULTI_PLAY_GAME_STATUS";
+	public static final String MULTI_PLAY_GAME_STARTED = "MULTI_PLAY_GAME_STARTED";
 
 	/**
 	 * Invoked during init to give the Activity a chance to set up its Menu.
@@ -125,7 +128,7 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	@Override
 	protected void onPause() {
 		super.onPause();
-		
+
 		try {
 			// Save game
 			FileOutputStream fos = openFileOutput(SAVED_GAME_FILE_NAME,
