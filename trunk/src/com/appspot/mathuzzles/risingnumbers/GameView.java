@@ -340,8 +340,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					if (c != null) {
 						synchronized (mSurfaceHolder) {
 							if (mMode == STATE_RUNNING) {
-								if (isPlayOnline
-										&& multiPlayGameStatus == PENDING) {
+								if (isPlayOnline && !multiPlayGameStarted) {
 									c.drawPaint(mClearColor);
 									drawWaitingForOpponent(c);
 								} else {
@@ -944,6 +943,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 				String url = CONNECTION_URL + data;
 
+				// TODO - Remove debug
 				Log.d(this.getClass().getName(), "Sending request: " + url);
 
 				try {
@@ -969,22 +969,24 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			 */
 			public void handleRequest(String response) {
 
+				// If not online or not running, return.
 				if (!isPlayOnline || !mRun) {
 					return;
 				}
 
 				response = response.trim();
 
-				Log.d(this.getClass().getName(), "Handling response"
-						+ response.trim());
+				// TODO - Remove debug
+				Log.d(this.getClass().getName(), "Handling response:"
+						+ response);
 
 				String[] results = response.split(",");
 
 				// Should always have status
 				if (results.length > 0) {
 
+					// Convert to int
 					String status = results[0].trim();
-
 					if (status.length() > 0) {
 						multiPlayGameStatus = new Integer(results[0].trim())
 								.intValue();
@@ -994,9 +996,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					if (!multiPlayGameStarted) {
 						// Start game
 						if (multiPlayGameStatus == IN_PLAY) {
-							// Draw board and start animation
+							// Update start flag
 							multiPlayGameStarted = true;
-							mMode = STATE_RUNNING;
 						}
 						// Start a new game (these shouldn't occur normally)
 						else if (multiPlayGameStatus == OPPONENT_LOST_CONNECTION
