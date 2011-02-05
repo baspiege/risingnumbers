@@ -48,6 +48,7 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	public static final String IS_PLAY_ONLINE = "IS_PLAY_ONLINE";
 	public static final String MULTI_PLAY_GAME_STATUS = "MULTI_PLAY_GAME_STATUS";
 	public static final String MULTI_PLAY_GAME_STARTED = "MULTI_PLAY_GAME_STARTED";
+	public static final String MULTI_PLAY_USER_ID = "MULTI_PLAY_USER_ID";
 
 	/**
 	 * Invoked during init to give the Activity a chance to set up its Menu.
