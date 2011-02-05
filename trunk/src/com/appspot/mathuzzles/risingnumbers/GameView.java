@@ -34,7 +34,13 @@ import android.view.GestureDetector.SimpleOnGestureListener;
 /**
  * Rising numbers view.
  * 
- * TODO - Add user Id when saving and restoring...
+ * TODO - Add user Id when saving and restoring - TEST
+ * 
+ * <p>
+ * If game over multi play, send one last.
+ * 
+ * <p>
+ * Take last opponent ball when
  * 
  * Has a mode: running, paused, game over.
  */
@@ -317,6 +323,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							.get(RisingNumbers.MULTI_PLAY_GAME_STATUS);
 					multiPlayGameStarted = (Boolean) savedGame
 							.get(RisingNumbers.MULTI_PLAY_GAME_STARTED);
+					multiPlayUserId = (String) savedGame
+							.get(RisingNumbers.MULTI_PLAY_USER_ID);
 
 					initHighScore();
 					setHighScoreDisplay();
@@ -396,6 +404,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						multiPlayGameStatus);
 				gameSate.put(RisingNumbers.MULTI_PLAY_GAME_STARTED,
 						multiPlayGameStarted);
+				gameSate.put(RisingNumbers.MULTI_PLAY_USER_ID, multiPlayUserId);
 
 			}
 			return gameSate;
@@ -526,8 +535,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			if (isPlayOnline && ballsFromOpponent.size() > 0) {
 				// Get latest from opponent balls
-				currBall = ballsFromOpponent
-						.remove(ballsFromOpponent.size() - 1);
+				currBall = ballsFromOpponent.remove(0);
 				currBall.y = QUEUE_Y;
 			} else {
 
@@ -905,13 +913,13 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			// Multiplay constants
 			private int CONNECTION_MILLIS = 2000;
-			private String CONNECTION_URL = "http://mathuzzles.appspot.com/multiplay.jsp";
+			private String CONNECTION_URL = "http://mathuzzles.appspot.com/MultiPlay";
 			private HttpClient client = new DefaultHttpClient();
 
 			@Override
 			public void run() {
 				while (isPlayOnline && mRun) {
-					if (mMode == STATE_RUNNING || mMode == STATE_OVER) {
+					if (mMode == STATE_RUNNING) {
 						sendRequest();
 					}
 				}
@@ -938,7 +946,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				// Get next ball to shoot
 				else if (ballsToOpponent.size() > 0) {
 					Ball ballTo = ballsToOpponent.remove(0);
-					data += "&number=" + ballTo.number + "&x=" + ballTo.x;
+					data += "&number=" + ballTo.number;
 				}
 
 				String url = CONNECTION_URL + data;
