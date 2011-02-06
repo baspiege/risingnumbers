@@ -40,7 +40,7 @@ import android.view.GestureDetector.SimpleOnGestureListener;
  * If game over multi play, send one last. - TEST
  * 
  * <p>
- * For ease, just have one queue...
+ * For ease, just have one queue - TEST
  * 
  * Has a mode: running, paused, game over.
  */
@@ -68,8 +68,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		private static final int Y_DELTA = 1;
 		private static final int BALL_RADIUS = 15;
 		private static final int BALL_DISTANCE = BALL_RADIUS * 2;
-		private static final int OPPONENT_BALLS_IN_QUEUE_DISPLAY = 3; // Multiplay
-		// only
 
 		// Running game fields
 		private Ball currBall = null;
@@ -106,7 +104,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		private Paint mClearColor;
 		private Paint mGreyColor;
 		private Paint mBallColor;
-		private Paint mBallOpponentColor;
 		private Paint mTextColorSmallBold;
 		private Paint mTextColorMedium;
 		private Paint mTextColorMediumBold;
@@ -148,10 +145,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			mBallColor = new Paint();
 			mBallColor.setAntiAlias(true);
 			mBallColor.setARGB(255, 0, 0, 255);
-
-			mBallOpponentColor = new Paint();
-			mBallOpponentColor.setAntiAlias(true);
-			mBallOpponentColor.setARGB(255, 255, 0, 0);
 
 			mTextColorLargeBold = new Paint();
 			mTextColorLargeBold.setAntiAlias(true);
@@ -204,6 +197,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					setPointsDisplay();
 					setHighScoreDisplay();
 					isGameOver = false;
+					isGameWon = false;
 					shooting = false;
 					moveX = 0;
 					moveY = 0;
@@ -312,6 +306,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					setPointsDisplay();
 					isGameOver = (Boolean) savedGame
 							.get(RisingNumbers.IS_GAME_OVER);
+					isGameWon = (Boolean) savedGame
+							.get(RisingNumbers.IS_GAME_WON);
 					moveX = (Float) savedGame.get(RisingNumbers.MOVE_X);
 					moveY = (Float) savedGame.get(RisingNumbers.MOVE_Y);
 					shooting = (Boolean) savedGame
@@ -325,6 +321,10 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							.get(RisingNumbers.MULTI_PLAY_GAME_STARTED);
 					multiPlayUserId = (String) savedGame
 							.get(RisingNumbers.MULTI_PLAY_USER_ID);
+					ballsToOpponent = (ArrayList<Ball>) savedGame
+							.get(RisingNumbers.BALLS_TO_OPPONENT);
+					ballsFromOpponent = (ArrayList<Ball>) savedGame
+							.get(RisingNumbers.BALLS_FROM_OPPONENT);
 
 					initHighScore();
 					setHighScoreDisplay();
@@ -395,6 +395,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				gameSate.put(RisingNumbers.BALLS_IN_QUEUE, ballsInQueue);
 				gameSate.put(RisingNumbers.CURRENT_POINTS, points);
 				gameSate.put(RisingNumbers.IS_GAME_OVER, isGameOver);
+				gameSate.put(RisingNumbers.IS_GAME_WON, isGameWon);
 				gameSate.put(RisingNumbers.MOVE_X, moveX);
 				gameSate.put(RisingNumbers.MOVE_Y, moveY);
 				gameSate.put(RisingNumbers.IS_SHOOTING, shooting);
@@ -405,7 +406,9 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				gameSate.put(RisingNumbers.MULTI_PLAY_GAME_STARTED,
 						multiPlayGameStarted);
 				gameSate.put(RisingNumbers.MULTI_PLAY_USER_ID, multiPlayUserId);
-
+				gameSate.put(RisingNumbers.BALLS_TO_OPPONENT, ballsToOpponent);
+				gameSate.put(RisingNumbers.BALLS_FROM_OPPONENT,
+						ballsFromOpponent);
 			}
 			return gameSate;
 		}
@@ -527,34 +530,33 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 		/**
 		 * Create a new ball.
-		 * 
-		 * If playing online and there are opponent balls, get from opponents
-		 * balls. Else, get from regular queue.
 		 */
 		private void createNewBall() {
 
+			// Get latest from regular queue
+			currBall = ballsInQueue.remove(ballsInQueue.size() - 1);
+
+			// For new ball to queue, if mulitplay, get from opponents balls.
+			// Else, create a new ball.
+			Ball newBall;
 			if (isPlayOnline && ballsFromOpponent.size() > 0) {
-				// Get latest from opponent balls
-				currBall = ballsFromOpponent.remove(0);
-				currBall.y = QUEUE_Y;
+				// Get oldest from opponent balls
+				newBall = ballsFromOpponent.remove(0);
 			} else {
+				// Create new ball
+				newBall = new Ball();
+				newBall.number = generateRandom(NEW_BALL_MAX) + 2;
+			}
 
-				// Get latest from regular queue
-				currBall = ballsInQueue.remove(ballsInQueue.size() - 1);
+			newBall.y = QUEUE_Y;
+			ballsInQueue.add(0, newBall);
 
-				// Create new ball and add to back.
-				Ball ball = new Ball();
-				ball.number = generateRandom(NEW_BALL_MAX) + 2;
-				ball.y = QUEUE_Y;
-				ballsInQueue.add(0, ball);
-
-				// Move up rest of queue
-				int x = MARGIN_LEFT + STARTING_BALL_SPACING_LEFT;
-				int size = ballsInQueue.size();
-				for (int i = 0; i < size; i++) {
-					ballsInQueue.get(i).x = x;
-					x += BALL_SPACING;
-				}
+			// Move up rest of queue
+			int x = MARGIN_LEFT + STARTING_BALL_SPACING_LEFT;
+			int size = ballsInQueue.size();
+			for (int i = 0; i < size; i++) {
+				ballsInQueue.get(i).x = x;
+				x += BALL_SPACING;
 			}
 
 			currBall.x = lastX;
@@ -614,29 +616,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 
 		/**
-		 * Draw ball from opponent.
-		 */
-		private void drawOpponentBall(Canvas canvas, Ball ball) {
-			canvas.drawCircle(ball.x, ball.y, BALL_RADIUS, mBallOpponentColor);
-
-			// 0-9
-			if (ball.number < 10) {
-				canvas.drawText(Integer.toString(ball.number), ball.x - 6,
-						ball.y + 8, mTextColorLargeBold);
-			}
-			// 10-99
-			else if (ball.number < 100) {
-				canvas.drawText(Integer.toString(ball.number), ball.x - 12,
-						ball.y + 8, mTextColorMediumBold);
-			}
-			// 100 ->
-			else {
-				canvas.drawText(Integer.toString(ball.number), ball.x - 14,
-						ball.y + 6, mTextColorSmallBold);
-			}
-		}
-
-		/**
 		 * Draw board
 		 */
 		private void doDraw(Canvas canvas) {
@@ -666,19 +645,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			size = ballsInQueue.size();
 			for (int i = 0; i < size; i++) {
 				drawBall(canvas, ballsInQueue.get(i));
-			}
-
-			// Draw opponent balls
-			if (isPlayOnline) {
-				size = ballsFromOpponent.size();
-
-				// Limit display
-				if (size > OPPONENT_BALLS_IN_QUEUE_DISPLAY) {
-					size = OPPONENT_BALLS_IN_QUEUE_DISPLAY;
-				}
-				for (int i = 0; i < size; i++) {
-					drawOpponentBall(canvas, ballsFromOpponent.get(i));
-				}
 			}
 
 			drawBall(canvas, currBall);
@@ -784,11 +750,11 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					currBall.y = MARGIN_TOP;
 				}
 
-				detectCollision(currBall, true, true);
+				detectCollision(currBall);
 			} else {
 				boolean collision = false;
 				while (!collision) {
-					collision = detectCollision(currBall, true, true);
+					collision = detectCollision(currBall);
 				}
 				shooting = false;
 			}
@@ -808,8 +774,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		/**
 		 * Detect collision with other balls or border.
 		 */
-		private boolean detectCollision(Ball movingBall,
-				boolean willCreateNewBall, boolean canMoveX) {
+		private boolean detectCollision(Ball movingBall) {
 
 			boolean collision = false;
 
@@ -851,12 +816,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						}
 
 						setPointsDisplay();
-
 						lastX = currBall.x;
-
-						if (willCreateNewBall) {
-							createNewBall();
-						}
+						createNewBall();
 					} else {
 						// Add to current ball.
 						currBall.number += ball.number;
@@ -869,9 +830,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							isGameOver = true;
 						} else {
 							lastX = currBall.x;
-							if (willCreateNewBall) {
-								createNewBall();
-							}
+							createNewBall();
 						}
 					}
 
@@ -1047,15 +1006,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				if (results.length == 2) {
 					Ball ball = new Ball();
 					ball.number = new Integer(results[1].trim()).intValue();
-
-					// Put next to regular queue
-					int x = MARGIN_LEFT
-							+ STARTING_BALL_SPACING_LEFT
-							+ ((ballsFromOpponent.size() + BALLS_IN_QUEUE) * BALL_SPACING);
-
-					ball.x = x; // parseInt(results[2]);
-					ball.y = QUEUE_Y;
-
 					ballsFromOpponent.add(ball);
 				}
 			}

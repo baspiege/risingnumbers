@@ -4,7 +4,7 @@
 	<string name="app_name">Rising Numbers</string>
 	<string name="app_desc">Rising number divides!</string>
 	
-	<string name="menu_start">New Game</string>
+	<string name="menu_start">Play Solo</string>
 	<string name="menu_start_multiplay">Play Online</string>
 	<string name="menu_pause">Pause</string>
 	<string name="menu_resume">Resume</string>
