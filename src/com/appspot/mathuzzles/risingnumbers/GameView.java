@@ -749,25 +749,13 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			if (isGameOver) {
 				stopGame();
 
-				try {
-					if (points > highScore) {
-						highScore = points;
-
-						setHighScoreDisplay();
-
-						FileOutputStream fos = mContext.openFileOutput(
-								RisingNumbers.HIGHSCORE_FILENAME,
-								Context.MODE_PRIVATE);
-						ObjectOutputStream out = new ObjectOutputStream(fos);
-						out.writeObject(highScore);
-						out.close();
-					}
-
-				} catch (Exception e) {
-					Log.e(this.getClass().getName(),
-							"Exception writing high score to file:"
-									+ e.toString());
+				// Send one last request to indicate game over.
+				if (isPlayOnline) {
+					multiPlayConnectionThread.sendRequest();
 				}
+
+				// Check high score.
+				checkHighScore();
 
 				return;
 			}
@@ -906,6 +894,30 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			return collision;
 		}
 
+		/**
+		 * Check high score.
+		 */
+		private void checkHighScore() {
+			try {
+				if (points > highScore) {
+					highScore = points;
+
+					setHighScoreDisplay();
+
+					FileOutputStream fos = mContext.openFileOutput(
+							RisingNumbers.HIGHSCORE_FILENAME,
+							Context.MODE_PRIVATE);
+					ObjectOutputStream out = new ObjectOutputStream(fos);
+					out.writeObject(highScore);
+					out.close();
+				}
+
+			} catch (Exception e) {
+				Log.e(this.getClass().getName(),
+						"Exception writing high score to file:" + e.toString());
+			}
+		}
+
 		class MultiPlayConnectionThread extends Thread {
 
 			/** Used to figure out elapsed time between frames */
@@ -928,7 +940,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			/**
 			 * Send request to the server.
 			 */
-			private void sendRequest() {
+			public void sendRequest() {
 				long now = System.currentTimeMillis();
 
 				// Keep ball movement at interval.

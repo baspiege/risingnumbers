@@ -61,9 +61,9 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		super.onCreateOptionsMenu(menu);
 		menu.add(0, MENU_START, 0, R.string.menu_start);
+		menu.add(0, MENU_START_MULTI_PLAY, 0, R.string.menu_start_multiplay);
 		menu.add(0, MENU_PAUSE, 0, R.string.menu_pause);
 		menu.add(0, MENU_RESUME, 0, R.string.menu_resume);
-		menu.add(0, MENU_START_MULTI_PLAY, 0, R.string.menu_start_multiplay);
 		return true;
 	}
 
