@@ -41,6 +41,7 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	public static final String BALLS_IN_QUEUE = "BALLS_IN_QUEUE";
 	public static final String CURRENT_POINTS = "CURRENT_POINTS";
 	public static final String IS_GAME_OVER = "IS_GAME_OVER";
+	public static final String IS_GAME_WON = "IS_GAME_WON";
 	public static final String MOVE_X = "MOVE_X";
 	public static final String MOVE_Y = "MOVE_Y";
 	public static final String LAST_X = "LAST_X";
@@ -49,6 +50,8 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	public static final String MULTI_PLAY_GAME_STATUS = "MULTI_PLAY_GAME_STATUS";
 	public static final String MULTI_PLAY_GAME_STARTED = "MULTI_PLAY_GAME_STARTED";
 	public static final String MULTI_PLAY_USER_ID = "MULTI_PLAY_USER_ID";
+	public static final String BALLS_TO_OPPONENT = "BALLS_TO_OPPONENT";
+	public static final String BALLS_FROM_OPPONENT = "BALLS_FROM_OPPONENT";
 
 	/**
 	 * Invoked during init to give the Activity a chance to set up its Menu.
