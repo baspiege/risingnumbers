@@ -37,10 +37,10 @@ import android.view.GestureDetector.SimpleOnGestureListener;
  * TODO - Add user Id when saving and restoring - TEST
  * 
  * <p>
- * If game over multi play, send one last.
+ * If game over multi play, send one last. - TEST
  * 
  * <p>
- * Take last opponent ball when
+ * For ease, just have one queue...
  * 
  * Has a mode: running, paused, game over.
  */
@@ -1044,7 +1044,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				}
 
 				// Next results are ball from the opponent
-				if (results.length == 3) {
+				if (results.length == 2) {
 					Ball ball = new Ball();
 					ball.number = new Integer(results[1].trim()).intValue();
 
