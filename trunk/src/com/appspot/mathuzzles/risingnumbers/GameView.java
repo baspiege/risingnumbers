@@ -34,14 +34,6 @@ import android.view.GestureDetector.SimpleOnGestureListener;
 /**
  * Rising numbers view.
  * 
- * TODO - Add user Id when saving and restoring - TEST
- * 
- * <p>
- * If game over multi play, send one last. - TEST
- * 
- * <p>
- * For ease, just have one queue - TEST
- * 
  * Has a mode: running, paused, game over.
  */
 class GameView extends SurfaceView implements SurfaceHolder.Callback {
@@ -726,7 +718,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				return;
 			}
 
-			// Keep ball movement at 20 milliseconds.
+			// Keep ball movement at interval
 			if (mLastTime + ANIMATION_MILLIS >= now) {
 				return;
 			}
@@ -891,7 +883,13 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			public void run() {
 				while (isPlayOnline && mRun) {
 					if (mMode == STATE_RUNNING) {
-						sendRequest();
+						long now = System.currentTimeMillis();
+
+						// Keep requests at interval
+						if (mConnectionLastTime + CONNECTION_MILLIS < now) {
+							sendRequest();
+							mConnectionLastTime = now;
+						}
 					}
 				}
 			}
@@ -900,12 +898,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			 * Send request to the server.
 			 */
 			public void sendRequest() {
-				long now = System.currentTimeMillis();
-
-				// Keep ball movement at interval.
-				if (mConnectionLastTime + CONNECTION_MILLIS >= now) {
-					return;
-				}
 
 				// Always add user Id
 				String data = "?userId=" + multiPlayUserId;
@@ -923,7 +915,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				String url = CONNECTION_URL + data;
 
 				// TODO - Remove debug
-				Log.d(this.getClass().getName(), "Sending request: " + url);
+				//Log.d(this.getClass().getName(), "Sending request: " + url);
 
 				try {
 					HttpGet get = new HttpGet(url);
@@ -937,8 +929,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							"Exception connecting to multiplay URL: "
 									+ e.toString());
 				}
-
-				mConnectionLastTime = now;
 			}
 
 			/**
@@ -948,16 +938,16 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			 */
 			public void handleRequest(String response) {
 
-				// If not online or not running, return.
-				if (!isPlayOnline || !mRun) {
+				// If not online, return.
+				if (!isPlayOnline) {
 					return;
 				}
 
 				response = response.trim();
 
 				// TODO - Remove debug
-				Log.d(this.getClass().getName(), "Handling response:"
-						+ response);
+				//Log.d(this.getClass().getName(), "Handling response:"
+				//		+ response);
 
 				String[] results = response.split(",");
 
@@ -987,7 +977,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							doStart();
 						}
 					}
-					// Else, started...
+					// Else, started
 					else {
 						if (multiPlayGameStatus == OPPONENT_LOST_CONNECTION) {
 							isGameOver = true;
@@ -1099,7 +1089,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		// the surface to be created
 		thread.setRunning(true);
 		thread.start();
-
 		thread.multiPlayConnectionThread.start();
 	}
 

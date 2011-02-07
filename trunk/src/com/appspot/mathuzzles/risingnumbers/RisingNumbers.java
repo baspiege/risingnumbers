@@ -171,7 +171,7 @@ public class RisingNumbers extends Activity implements OnClickListener {
 	/**
 	 * Get saved game.
 	 * 
-	 * Get bundle.
+	 * @return a map of attributes
 	 */
 	public static HashMap<String, Object> getSavedGame(Context context) {
 		HashMap<String, Object> hashMap = null;
