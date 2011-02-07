@@ -4,12 +4,15 @@
 	<string name="app_name">Nombre Croissant</string>
 	<string name="app_desc">Nombre croissant divise!</string>	
 	
-	<string name="menu_start">Nouveau Jeu</string>
+	<string name="menu_start">Jouer en Solo</string>
+	<string name="menu_start_multiplay">Jouer en Ligne</string>
 	<string name="menu_pause">Pause</string>
 	<string name="menu_resume">Reprendre</string>
 
 	<string name="gameOver">Jeu Terminé!</string>
+	<string name="gameWon">Vous Gagnez!</string>
 	<string name="paused">En Pause!</string>
+	<string name="waitingForOpponent">D\'attente pour L\'adversaire...</string>
 
 	<string name="points">Points:</string>
 	<string name="highScore">Points Hauts:</string>

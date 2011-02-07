@@ -4,12 +4,15 @@
 	<string name="app_name">Números Que Suben</string>
 	<string name="app_desc">Número subiendo divide.</string>	
 	
-	<string name="menu_start">Nuevo Juego</string>
+	<string name="menu_start">Jugar en Solitario</string>
+	<string name="menu_start_multiplay">Jugar en Línea</string>
 	<string name="menu_pause">Pausar</string>
 	<string name="menu_resume">Reanudar</string>
 
 	<string name="gameOver">Terminado!</string>
+	<string name="gameWon">Juego Ganado!</string>
 	<string name="paused">Pausa!</string>
+	<string name="waitingForOpponent">La Espera de Rival...</string>
 
 	<string name="points">Puntos:</string>
 	<string name="highScore">Puntos Más Altos:</string>
