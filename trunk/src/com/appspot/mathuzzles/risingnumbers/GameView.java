@@ -707,11 +707,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			if (isGameOver) {
 				stopGame();
 
-				// Send one last request to indicate game over.
-				if (isPlayOnline) {
-					multiPlayConnectionThread.sendRequest();
-				}
-
 				// Check high score.
 				checkHighScore();
 
@@ -820,6 +815,11 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						// If over 99 or at bottom, game over!
 						if (currBall.number > 99 || currBall.y > 260) {
 							isGameOver = true;
+
+							// Send one last request to indicate game over.
+							if (isPlayOnline) {
+								multiPlayConnectionThread.sendRequest();
+							}
 						} else {
 							lastX = currBall.x;
 							createNewBall();
@@ -914,9 +914,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 				String url = CONNECTION_URL + data;
 
-				// TODO - Remove debug
-				//Log.d(this.getClass().getName(), "Sending request: " + url);
-
 				try {
 					HttpGet get = new HttpGet(url);
 					HttpResponse responseGet = client.execute(get);
@@ -944,10 +941,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				}
 
 				response = response.trim();
-
-				// TODO - Remove debug
-				//Log.d(this.getClass().getName(), "Handling response:"
-				//		+ response);
 
 				String[] results = response.split(",");
 
