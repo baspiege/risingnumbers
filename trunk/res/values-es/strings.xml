@@ -10,7 +10,7 @@
 	<string name="menu_resume">Reanudar</string>
 
 	<string name="gameOver">Terminado!</string>
-	<string name="gameWon">Juego Ganado!</string>
+	<string name="gameWon">Usted Ganó!</string>
 	<string name="paused">Pausa!</string>
 	<string name="waitingForOpponent">La Espera de Rival...</string>
 

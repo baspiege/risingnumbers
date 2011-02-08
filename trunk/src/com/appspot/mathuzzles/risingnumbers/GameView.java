@@ -118,6 +118,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		private Random random = new Random();
 
 		public MultiPlayConnectionThread multiPlayConnectionThread = null;
+		public boolean oneLastConnection = false;
 
 		public GameThread(SurfaceHolder surfaceHolder, Context context) {
 			mSurfaceHolder = surfaceHolder;
@@ -200,6 +201,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					multiPlayUserId = new Long(random.nextLong()).toString();
 					multiPlayGameStatus = PENDING;
 					multiPlayGameStarted = false;
+					oneLastConnection = false;
 				}
 				mLastTime = System.currentTimeMillis();
 				setState(STATE_RUNNING);
@@ -818,7 +820,7 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 							// Send one last request to indicate game over.
 							if (isPlayOnline) {
-								multiPlayConnectionThread.sendRequest();
+								oneLastConnection = true;
 							}
 						} else {
 							lastX = currBall.x;
@@ -890,6 +892,11 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							sendRequest();
 							mConnectionLastTime = now;
 						}
+					}
+					// One last connection.
+					else if (oneLastConnection) {
+						sendRequest();
+						oneLastConnection = false;
 					}
 				}
 			}
