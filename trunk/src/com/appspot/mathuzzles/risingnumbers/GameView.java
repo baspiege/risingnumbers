@@ -176,8 +176,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						multiPlayConnectionThread.start();
 					}
 
-					multiPlayConnectionThread.mConnectionLastTime = System
-							.currentTimeMillis();
+					// Set as 0 so always runs right away.
+					multiPlayConnectionThread.mConnectionLastTime = 0;
 				}
 
 				if (mMode != STATE_PAUSE) {
@@ -335,6 +335,21 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		@Override
 		public void run() {
 			while (mRun) {
+
+				// Keep ball movement at interval
+				long elapsedTime = System.currentTimeMillis() - mLastTime;
+				if (elapsedTime < ANIMATION_MILLIS) {
+					try {
+						Thread.sleep((ANIMATION_MILLIS - elapsedTime));
+					} catch (InterruptedException e) {
+						Log.e(this.getClass().getName(),
+								"Exception while game thread was sleeping:"
+										+ e.toString());
+					}
+				}
+
+				mLastTime = System.currentTimeMillis();
+
 				Canvas c = null;
 				try {
 					c = mSurfaceHolder.lockCanvas();
@@ -704,7 +719,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		 * Increment ball.
 		 */
 		private void incrementBoard() {
-			long now = System.currentTimeMillis();
 
 			if (isGameOver) {
 				stopGame();
@@ -712,11 +726,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				// Check high score.
 				checkHighScore();
 
-				return;
-			}
-
-			// Keep ball movement at interval
-			if (mLastTime + ANIMATION_MILLIS >= now) {
 				return;
 			}
 
@@ -747,8 +756,6 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				}
 				shooting = false;
 			}
-
-			mLastTime = now;
 		}
 
 		/**
@@ -885,13 +892,13 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			public void run() {
 				while (isPlayOnline && mRun) {
 					if (mMode == STATE_RUNNING) {
-						long now = System.currentTimeMillis();
-						long elapsedTime = now - mConnectionLastTime;
 
 						// Keep requests at interval
+						long elapsedTime = System.currentTimeMillis()
+								- mConnectionLastTime;
 						if (elapsedTime >= CONNECTION_MILLIS) {
 							sendRequest();
-							mConnectionLastTime = now;
+							mConnectionLastTime = System.currentTimeMillis();
 						} else {
 							try {
 								Thread.sleep(CONNECTION_MILLIS - elapsedTime);
