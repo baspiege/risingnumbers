@@ -886,11 +886,20 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				while (isPlayOnline && mRun) {
 					if (mMode == STATE_RUNNING) {
 						long now = System.currentTimeMillis();
+						long elapsedTime = now - mConnectionLastTime;
 
 						// Keep requests at interval
-						if (mConnectionLastTime + CONNECTION_MILLIS < now) {
+						if (elapsedTime >= CONNECTION_MILLIS) {
 							sendRequest();
 							mConnectionLastTime = now;
+						} else {
+							try {
+								Thread.sleep(CONNECTION_MILLIS - elapsedTime);
+							} catch (InterruptedException e) {
+								Log.e(this.getClass().getName(),
+										"Exception while multi play connection thread was sleeping:"
+												+ e.toString());
+							}
 						}
 					}
 					// One last connection.
