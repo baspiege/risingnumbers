@@ -827,7 +827,10 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 							// Send one last request to indicate game over.
 							if (isPlayOnline) {
+								// Set flags and then call interrupt.
 								oneLastConnection = true;
+								multiPlayConnectionThread.mConnectionLastTime = 0;
+								multiPlayConnectionThread.interrupt();
 							}
 						} else {
 							lastX = currBall.x;
