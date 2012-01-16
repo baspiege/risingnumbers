@@ -60,6 +60,8 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		private static final int Y_DELTA = 1;
 		private static final int BALL_RADIUS = 15;
 		private static final int BALL_DISTANCE = BALL_RADIUS * 2;
+		private static final int CLEAR_BOARD_BONUS = 1000;
+		private static final int POINTS_TO_REMOVE = 100;
 
 		// Running game fields
 		private Ball currBall = null;
@@ -800,11 +802,50 @@ class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							pointsToAdd += 1;
 						}
 
-						// Update points
-						points += pointsToAdd;
+						// If solo, check for clear
+						if (!isPlayOnline) {
 
-						// Send to opponent
-						if (isPlayOnline) {
+							// Get old hundreds for clear
+							int hundredsOld = (int) points / 100;
+
+							// Update points
+							points += pointsToAdd;
+
+							// Check if new hundreds attained
+							int hundredsNew = (int) points / 100;
+							if (hundredsNew > hundredsOld) {
+
+								// Remove points
+								int pointsToRemove = POINTS_TO_REMOVE;
+								for (int j = balls.size() - 1; j > -1; j--) {
+									if (balls.get(j).number < pointsToRemove) {
+										pointsToRemove -= balls.get(j).number;
+										balls.remove(j);
+									} else if (pointsToRemove > 0) {
+										balls.get(j).number -= pointsToRemove;
+										if (balls.get(j).number == 0) {
+											balls.remove(j);
+										}
+										pointsToRemove = 0;
+										break;
+									}
+								}
+							}
+
+							// If no balls left, add bonus and create new board
+							if (balls.isEmpty()) {
+								points += CLEAR_BOARD_BONUS;
+								createBoard();
+
+								// Ideas:
+								// New level
+								// Time bonus? Balls used bonus?
+							}
+						} else {
+							// Update points
+							points += pointsToAdd;
+
+							// Send to opponent
 							Ball ballTo = new Ball();
 							ballTo.x = movingBall.x;
 							ballTo.number = pointsToAdd;
